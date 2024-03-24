@@ -3,10 +3,10 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import requests
 import tempfile
-from datetime import datetime, timedelta
+from plot_func import plot_cross_point
 
-import matplotlib
-matplotlib.use('TkAgg')  # バックエンドをTkAggに設定する
+# import matplotlib
+# matplotlib.use('TkAgg')  # バックエンドをTkAggに設定する
 
 
 def plot_eMaxiSlim_from_csv_url(csv_url, web_url):
@@ -66,13 +66,13 @@ def plot_eMaxiSlim_from_csv_url(csv_url, web_url):
     df['SMA_1'] = df['基準価額(円)'].rolling(window=SMA_PATTERN_1).mean()
     df['SMA_2'] = df['基準価額(円)'].rolling(window=SMA_PATTERN_2).mean()
     df['LMA_1'] = df['基準価額(円)'].rolling(window=LMA_PATTERN_1).mean()
-    df['LMA_2'] = df['基準価額(円)'].rolling(window=LMA_PATTERN_2).mean()
+    # df['LMA_2'] = df['基準価額(円)'].rolling(window=LMA_PATTERN_2).mean()
 
     # 乖離の計算（基準価額 - 移動平均）
     df['Divergence_SMA_1'] = df['SMA_1'] - df['基準価額(円)']
     df['Divergence_SMA_2'] = df['SMA_2'] - df['基準価額(円)']
     df['Divergence_LMA_1'] = df['LMA_1'] - df['基準価額(円)']
-    df['Divergence_LMA_2'] = df['LMA_2'] - df['基準価額(円)']
+    # df['Divergence_LMA_2'] = df['LMA_2'] - df['基準価額(円)']
 
     # '基準日'列を日付の形式に変換
     df['基準日'] = pd.to_datetime(df['基準日'])
@@ -88,11 +88,13 @@ def plot_eMaxiSlim_from_csv_url(csv_url, web_url):
     plt.figure(figsize=(14, 6))
 
     plt.plot(df.index, df['Divergence_SMA_1'], label=f'{SMA_PATTERN_1}日移動平均 - 基準価額', color='orange')
-    plt.plot(df.index, df['Divergence_SMA_2'], label=f'{SMA_PATTERN_2}日移動平均 - 基準価額', color=(0.5, 0, 0.0, 0.5))
+    plt.plot(df.index, df['Divergence_SMA_2'], label=f'{SMA_PATTERN_2}日移動平均 - 基準価額', color=(255/255, 210/255, 0/255), linewidth=1)
     plt.plot(df.index, df['Divergence_LMA_1'], label=f'{LMA_PATTERN_1}日移動平均 - 基準価額', color='gray', linewidth=1)
-    plt.plot(df.index, df['Divergence_LMA_2'], label=f'{LMA_PATTERN_2}日移動平均 - 基準価額', color=(0.7, 0.7, 0.7), linewidth=1)
+    # plt.plot(df.index, df['Divergence_LMA_2'], label=f'{LMA_PATTERN_2}日移動平均 - 基準価額', color=(0.7, 0.7, 0.7), linewidth=1)
 
     plt.axhline(y=0, color='blue', linestyle='-')  # 乖離が0の基準線
+
+    plot_cross_point(df, 'Divergence_SMA_1', 'Divergence_LMA_1')
 
     # x軸のラベルと位置を設定
     plt.xticks(df_year_starts.index, df_year_starts['基準日'].dt.strftime('%Y'))
