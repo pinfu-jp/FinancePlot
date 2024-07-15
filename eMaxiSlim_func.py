@@ -69,19 +69,10 @@ def plot_eMaxiSlim_from_csv_url(csv_url, web_url):
     df['LMA_2'] = df['基準価額(円)'].rolling(window=LMA_PATTERN_2).mean()
 
     # 乖離の計算（基準価額 - 移動平均）
-    df['Divergence_SMA_1'] = df['基準価額(円)'] - df['SMA_1']
-    df['Divergence_SMA_2'] = df['基準価額(円)'] - df['SMA_2']
-    df['Divergence_LMA_1'] = df['基準価額(円)'] - df['LMA_1']
-    df['Divergence_LMA_2'] = df['基準価額(円)'] - df['LMA_2']
-
-    # 乖離の計算（移動平均 - 基準価額）
-    # df['Divergence_SMA_1'] = df['SMA_1'] - df['基準価額(円)']
-    # df['Divergence_SMA_2'] = df['SMA_2'] - df['基準価額(円)']
-    # df['Divergence_LMA_1'] = df['LMA_1'] - df['基準価額(円)']
-    # df['Divergence_LMA_2'] = df['LMA_2'] - df['基準価額(円)']
-
-    # トレイリングストップの追加
-    # df = calculate_trailing_stop(df, 5)
+    df['Divergence_SMA_1'] = df['基準価額(円)'] / df['SMA_1']
+    df['Divergence_SMA_2'] = df['基準価額(円)'] / df['SMA_2']
+    df['Divergence_LMA_1'] = df['基準価額(円)'] / df['LMA_1']
+    df['Divergence_LMA_2'] = df['基準価額(円)'] / df['LMA_2']
 
     # '基準日'列を日付の形式に変換
     df['基準日'] = pd.to_datetime(df['基準日'])
@@ -90,8 +81,8 @@ def plot_eMaxiSlim_from_csv_url(csv_url, web_url):
     # 各年の最初の日付のデータのみを抽出
     df_year_starts = df.loc[first_day_indices]
 
-    # 移動平均のトレイリングストップ（-5%）を下回ったポイントを特定
-    under_trailing_stop_points = under_trailing_stop_condition(df, 'SMA_1', -5)
+    # 移動平均のトレイリングストップを下回ったポイントを特定
+    under_trailing_stop_points = under_trailing_stop_condition(df, '基準価額(円)', 'SMA_2', 3)
 
     # 日本語を表示できるフォントに設定
     plt.rcParams['font.family'] = 'Meiryo'
@@ -99,22 +90,15 @@ def plot_eMaxiSlim_from_csv_url(csv_url, web_url):
     # 乖離のグラフ化
     plt.figure(figsize=(14, 6))
 
-    plt.plot(df.index, df['Divergence_SMA_1'], label=f'基準価額 - {SMA_PATTERN_1}日移動平均', color='orange')
-    plt.plot(df.index, df['Divergence_SMA_2'], label=f'基準価額 - {SMA_PATTERN_2}日移動平均', color=(255/255, 210/255, 0/255), linewidth=1)
-    plt.plot(df.index, df['Divergence_LMA_1'], label=f'基準価額 - {LMA_PATTERN_1}日移動平均', color='gray', linewidth=1)
-    plt.plot(df.index, df['Divergence_LMA_2'], label=f'基準価額 - {LMA_PATTERN_2}日移動平均', color=(0.8, 0.8, 0.8), linewidth=1)
+    plt.plot(df.index, df['Divergence_SMA_1'], label=f'基準価額 / {SMA_PATTERN_1}日移動平均', color='orange', linewidth=1)
+    plt.plot(df.index, df['Divergence_SMA_2'], label=f'基準価額 / {SMA_PATTERN_2}日移動平均', color=(255/255, 110/255, 0/255))
+    plt.plot(df.index, df['Divergence_LMA_1'], label=f'基準価額 / {LMA_PATTERN_1}日移動平均', color='gray', linewidth=1)
+    plt.plot(df.index, df['Divergence_LMA_2'], label=f'基準価額 / {LMA_PATTERN_2}日移動平均', color=(0.8, 0.8, 0.8), linewidth=1)
 
-    # plt.plot(df.index, df['Divergence_SMA_1'], label=f'{SMA_PATTERN_1}日移動平均 - 基準価額', color='orange')
-    # plt.plot(df.index, df['Divergence_SMA_2'], label=f'{SMA_PATTERN_2}日移動平均 - 基準価額', color=(255/255, 210/255, 0/255), linewidth=1)
-    # plt.plot(df.index, df['Divergence_LMA_1'], label=f'{LMA_PATTERN_1}日移動平均 - 基準価額', color='gray', linewidth=1)
-    # plt.plot(df.index, df['Divergence_LMA_2'], label=f'{LMA_PATTERN_2}日移動平均 - 基準価額', color=(0.8, 0.8, 0.8), linewidth=1)
+    # トレイリングストップを下回ったポイントを強調表示
+    plt.scatter(under_trailing_stop_points.index, [1.0] * len(under_trailing_stop_points), label='トレイリングストップ警告', color='red', linewidth=0.5)
 
-    # plt.plot(df.index, df['Trailing_Stop'], label='トレイリングストップ（5%）', color='red', linestyle='--')
-
-    # 基準価額が移動平均の-5%になったポイントを強調表示
-    plt.scatter(under_trailing_stop_points.index, under_trailing_stop_points['基準価額(円)'], label='基準価額がSMA_1の-5%', color='red')
-
-    plt.axhline(y=0, color='blue', linestyle='-')  # 乖離が0の基準線
+    plt.axhline(y=1.0, color='blue', linestyle='-')  # 基準線
 
     plot_cross_point(df, 'Divergence_SMA_1', 'Divergence_LMA_1')
 
@@ -133,8 +117,7 @@ def plot_eMaxiSlim_from_csv_url(csv_url, web_url):
     plt.show()
 
 
-
 # トレイリングストップを下回った日付
-def under_trailing_stop_condition(df, sma_column, percentage):
-    condition = df['基準価額(円)'] <= df[sma_column] * (1 + percentage / 100)
+def under_trailing_stop_condition(df, target_column, sma_column, percentage):
+    condition = (df[target_column] <= df[sma_column] * (1 + percentage / 100)) & (df[target_column] > df[sma_column])
     return df[condition]

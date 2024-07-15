@@ -20,7 +20,7 @@ def plot_from_yfinance(name, tickers, distance_year = 10):
     # 短期移動平均の日数パターン1
     SMA_PATTERN_1 = 20
     # 短期移動平均の日数パターン2
-    SMA_PATTERN_2 = 50
+    SMA_PATTERN_2 = 60
     # 長期移動平均の日数パターン1
     LMA_PATTERN_1 = 100
     # 長期移動平均の日数パターン2
@@ -47,21 +47,29 @@ def plot_from_yfinance(name, tickers, distance_year = 10):
     # df['LMA_2'] = df['Close'].rolling(window=LMA_PATTERN_2).mean()
 
     # 乖離の計算（終値 - SMA_PATTERN）
-    df['Divergence_SMA_PATTERN_1'] = df['SMA_1'] - df['Close']
-    df['Divergence_SMA_PATTERN_2'] = df['SMA_2'] - df['Close']
-    df['Divergence_LMA_PATTERN_1'] = df['LMA_1'] - df['Close']
-    # df['Divergence_LMA_PATTERN_2'] = df['LMA_2'] - df['Close']
+    df['Divergence_SMA_PATTERN_1'] = df['Close'] / df['SMA_1'] 
+    df['Divergence_SMA_PATTERN_2'] = df['Close'] / df['SMA_2']
+    df['Divergence_LMA_PATTERN_1'] = df['Close'] / df['LMA_1']
+    # df['Divergence_LMA_PATTERN_2'] = df['Close'] / df['LMA_2']
+
+    # 移動平均のトレイリングストップを下回ったポイントを特定
+    under_trailing_stop_points = under_trailing_stop_condition(df, 'Close', 'SMA_2', 3)
 
     # 日本語を表示できるフォントに設定
     plt.rcParams['font.family'] = 'Meiryo'
 
     # 乖離のグラフ化
     plt.figure(figsize=(14, 6))
-    plt.plot(df.index, df['Divergence_SMA_PATTERN_1'], label=f'{SMA_PATTERN_1}日移動平均 - 終値', color='orange')
-    plt.plot(df.index, df['Divergence_SMA_PATTERN_2'], label=f'{SMA_PATTERN_2}日移動平均 - 終値', color=(255/255, 210/255, 0/255), linewidth=1)
-    plt.plot(df.index, df['Divergence_LMA_PATTERN_1'], label=f'{LMA_PATTERN_1}日移動平均 - 終値', color='gray', linewidth=1)
-    # plt.plot(df.index, df['Divergence_LMA_PATTERN_2'], label=f'{LMA_PATTERN_2}日移動平均 - 終値', color=(0.7, 0.7, 0.7), linewidth=1)
-    plt.axhline(y=0, color='blue', linestyle='-')  # 0のラインは終値
+
+    plt.plot(df.index, df['Divergence_SMA_PATTERN_1'], label=f'終値 / {SMA_PATTERN_1}日移動平均', color='orange', linewidth=1)
+    plt.plot(df.index, df['Divergence_SMA_PATTERN_2'], label=f'終値 / {SMA_PATTERN_2}日移動平均', color=(255/255, 110/255, 0/255))
+    plt.plot(df.index, df['Divergence_LMA_PATTERN_1'], label=f'終値 / {LMA_PATTERN_1}日移動平均', color='gray', linewidth=1)
+    # plt.plot(df.index, df['Divergence_LMA_PATTERN_2'], label=f'終値 / {LMA_PATTERN_2}日移動平均', color=(0.7, 0.7, 0.7), linewidth=1)
+
+    # トレイリングストップを下回ったポイントを強調表示
+    plt.scatter(under_trailing_stop_points.index, [1.0] * len(under_trailing_stop_points), label='トレイリングストップ警告', color='red', linewidth=0.5)
+
+    plt.axhline(y=1.0, color='blue', linestyle='-')  # 基準線
 
     plot_cross_point(df, 'Divergence_SMA_PATTERN_1', 'Divergence_LMA_PATTERN_1')
 
@@ -75,3 +83,9 @@ def plot_from_yfinance(name, tickers, distance_year = 10):
     plt.text(0.5, -0.12, url_text, ha='center', va='center', transform=plt.gca().transAxes, fontsize=8, color='gray')
 
     plt.show()
+
+
+# トレイリングストップを下回った日付
+def under_trailing_stop_condition(df, target_column, sma_column, percentage):
+    condition = (df[target_column] <= df[sma_column] * (1 + percentage / 100)) & (df[target_column] > df[sma_column])
+    return df[condition]
